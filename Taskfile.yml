@@ -1,0 +1,64 @@
+version: "3"
+
+vars:
+  DBML_FILE: "./schema.dbml"
+  DSN: "{{.DB_CONNECTION}}://{{.DB_USER}}:{{.DB_PASSWORD}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.DB_NAME}}?sslmode=disable"
+
+dotenv:
+  - ".env"
+
+tasks:
+  default:
+    desc: "Gettings started"
+    cmds:
+      - task: install
+      - sleep 5 # wait for postgres to start
+      - task: migrate:up
+
+  install:
+    desc: "Install dependencies"
+    cmds:
+      - go mod download
+      - go install github.com/go-task/task/v3/cmd/task@latest
+      - go install github.com/cosmtrek/air@latest
+      - go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+
+  migrate:up:
+    desc: "Run database migrations"
+    cmd: migrate -path ./internal/adapter/storage/postgres/migrations -database {{.DSN}} -verbose up {{.CLI_ARGS}}
+    requires:
+      vars:
+        - DSN
+
+  migrate:down:
+    desc: "Rollback database migrations"
+    cmd: migrate -path ./internal/adapter/storage/postgres/migrations -database {{.DSN}} -verbose down {{.CLI_ARGS}}
+    requires:
+      vars:
+        - DSN
+
+  migrate:create:
+    desc: "Create new migration"
+    cmd: migrate create -dir ./internal/adapter/storage/postgres/migrations -ext sql -seq {{.CLI_ARGS}}
+
+  dev:
+    desc: "Start development server"
+    cmd: air
+
+  lint:
+    desc: "Run linter"
+    cmd: golangci-lint run ./...
+
+  build:
+    desc: "Build binary"
+    cmd: go build -o ./bin/{{.APP_NAME}} ./cmd/http/main.go
+    requires:
+      vars:
+        - APP_NAME
+
+  start:
+    desc: "Start binary"
+    cmd: ./bin/{{.APP_NAME}}
+    requires:
+      vars:
+        - APP_NAME
