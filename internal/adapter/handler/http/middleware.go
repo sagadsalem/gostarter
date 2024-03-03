@@ -1,10 +1,9 @@
-package middleware
+package http
 
 import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sajadsalem/gostarter/internal/adapter/handler/http/response"
 	"github.com/sajadsalem/gostarter/internal/core/domain"
 	"github.com/sajadsalem/gostarter/internal/core/port"
 )
@@ -19,14 +18,14 @@ const (
 )
 
 // authMiddleware is a middleware to check if the user is authenticated
-func AuthMiddleware(token port.TokenService) gin.HandlerFunc {
+func authMiddleware(token port.TokenService) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authorizationHeader := ctx.GetHeader(authorizationHeaderKey)
 
 		isEmpty := len(authorizationHeader) == 0
 		if isEmpty {
 			err := domain.ErrEmptyAuthorizationHeader
-			response.HandleAbort(ctx, err)
+			handleAbort(ctx, err)
 			return
 		}
 
@@ -34,21 +33,21 @@ func AuthMiddleware(token port.TokenService) gin.HandlerFunc {
 		isValid := len(fields) == 2
 		if !isValid {
 			err := domain.ErrInvalidAuthorizationHeader
-			response.HandleAbort(ctx, err)
+			handleAbort(ctx, err)
 			return
 		}
 
 		currentAuthorizationType := strings.ToLower(fields[0])
 		if currentAuthorizationType != authorizationType {
 			err := domain.ErrInvalidAuthorizationType
-			response.HandleAbort(ctx, err)
+			handleAbort(ctx, err)
 			return
 		}
 
 		accessToken := fields[1]
 		payload, err := token.VerifyToken(accessToken)
 		if err != nil {
-			response.HandleAbort(ctx, err)
+			handleAbort(ctx, err)
 			return
 		}
 
@@ -58,14 +57,14 @@ func AuthMiddleware(token port.TokenService) gin.HandlerFunc {
 }
 
 // adminMiddleware is a middleware to check if the user is an admin
-func AdminMiddleware() gin.HandlerFunc {
+func adminMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		payload := getAuthPayload(ctx, authorizationPayloadKey)
 
 		isAdmin := payload.Role == domain.Admin
 		if !isAdmin {
 			err := domain.ErrForbidden
-			response.HandleAbort(ctx, err)
+			handleAbort(ctx, err)
 			return
 		}
 

@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/sajadsalem/gostarter/internal/adapter/config"
-	"github.com/sajadsalem/gostarter/internal/adapter/handler/http/middleware"
 	"github.com/sajadsalem/gostarter/internal/core/port"
 	sloggin "github.com/samber/slog-gin"
 )
@@ -57,12 +56,12 @@ func NewRouter(
 			user.POST("/", userHandler.Register)
 			user.POST("/login", authHandler.Login)
 
-			authUser := user.Group("/").Use(middleware.AuthMiddleware(token))
+			authUser := user.Group("/").Use(authMiddleware(token))
 			{
 				authUser.GET("/", userHandler.ListUsers)
 				authUser.GET("/:id", userHandler.GetUser)
 
-				admin := authUser.Use(middleware.AdminMiddleware())
+				admin := authUser.Use(adminMiddleware())
 				{
 					admin.PUT("/:id", userHandler.UpdateUser)
 					admin.DELETE("/:id", userHandler.DeleteUser)

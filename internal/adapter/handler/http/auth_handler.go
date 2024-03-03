@@ -2,7 +2,6 @@ package http
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sajadsalem/gostarter/internal/adapter/handler/http/response"
 	"github.com/sajadsalem/gostarter/internal/core/port"
 )
 
@@ -27,17 +26,17 @@ type loginRequest struct {
 func (ah *AuthHandler) Login(ctx *gin.Context) {
 	var req loginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.ValidationError(ctx, err)
+		validationError(ctx, err)
 		return
 	}
 
 	token, err := ah.svc.Login(ctx, req.Email, req.Password)
 	if err != nil {
-		response.HandleError(ctx, err)
+		handleError(ctx, err)
 		return
 	}
 
-	rsp := response.NewAuthResponse(token)
+	rsp := newAuthResponse(token)
 
-	response.HandleSuccess(ctx, rsp)
+	handleSuccess(ctx, rsp)
 }

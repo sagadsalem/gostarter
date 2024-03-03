@@ -2,7 +2,6 @@ package http
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/sajadsalem/gostarter/internal/adapter/handler/http/response"
 	"github.com/sajadsalem/gostarter/internal/core/domain"
 	"github.com/sajadsalem/gostarter/internal/core/port"
 )
@@ -30,7 +29,7 @@ type registerRequest struct {
 func (uh *UserHandler) Register(ctx *gin.Context) {
 	var req registerRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.ValidationError(ctx, err)
+		validationError(ctx, err)
 		return
 	}
 
@@ -42,13 +41,13 @@ func (uh *UserHandler) Register(ctx *gin.Context) {
 
 	_, err := uh.svc.Register(ctx, &user)
 	if err != nil {
-		response.HandleError(ctx, err)
+		handleError(ctx, err)
 		return
 	}
 
-	rsp := response.NewUserResponse(&user)
+	rsp := newUserResponse(&user)
 
-	response.HandleSuccess(ctx, rsp)
+	handleSuccess(ctx, rsp)
 }
 
 // listUsersRequest represents the request body for listing users
@@ -59,28 +58,28 @@ type listUsersRequest struct {
 
 func (uh *UserHandler) ListUsers(ctx *gin.Context) {
 	var req listUsersRequest
-	var usersList []response.UserResponse
+	var usersList []userResponse
 
 	if err := ctx.ShouldBindQuery(&req); err != nil {
-		response.ValidationError(ctx, err)
+		validationError(ctx, err)
 		return
 	}
 
 	users, err := uh.svc.ListUsers(ctx, req.Skip, req.Limit)
 	if err != nil {
-		response.HandleError(ctx, err)
+		handleError(ctx, err)
 		return
 	}
 
 	for _, user := range users {
-		usersList = append(usersList, response.NewUserResponse(&user))
+		usersList = append(usersList, newUserResponse(&user))
 	}
 
 	total := uint64(len(usersList))
-	meta := response.NewMeta(total, req.Limit, req.Skip)
-	rsp := ToMap(meta, usersList, "users")
+	meta := newMeta(total, req.Limit, req.Skip)
+	rsp := toMap(meta, usersList, "users")
 
-	response.HandleSuccess(ctx, rsp)
+	handleSuccess(ctx, rsp)
 }
 
 // getUserRequest represents the request body for getting a user
@@ -91,19 +90,19 @@ type getUserRequest struct {
 func (uh *UserHandler) GetUser(ctx *gin.Context) {
 	var req getUserRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
-		response.ValidationError(ctx, err)
+		validationError(ctx, err)
 		return
 	}
 
 	user, err := uh.svc.GetUser(ctx, req.ID)
 	if err != nil {
-		response.HandleError(ctx, err)
+		handleError(ctx, err)
 		return
 	}
 
-	rsp := response.NewUserResponse(user)
+	rsp := newUserResponse(user)
 
-	response.HandleSuccess(ctx, rsp)
+	handleSuccess(ctx, rsp)
 }
 
 // updateUserRequest represents the request body for updating a user
@@ -117,14 +116,14 @@ type updateUserRequest struct {
 func (uh *UserHandler) UpdateUser(ctx *gin.Context) {
 	var req updateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		response.ValidationError(ctx, err)
+		validationError(ctx, err)
 		return
 	}
 
 	idStr := ctx.Param("id")
-	id, err := StringToUint64(idStr)
+	id, err := stringToUint64(idStr)
 	if err != nil {
-		response.ValidationError(ctx, err)
+		validationError(ctx, err)
 		return
 	}
 
@@ -138,13 +137,13 @@ func (uh *UserHandler) UpdateUser(ctx *gin.Context) {
 
 	_, err = uh.svc.UpdateUser(ctx, &user)
 	if err != nil {
-		response.HandleError(ctx, err)
+		handleError(ctx, err)
 		return
 	}
 
-	rsp := response.NewUserResponse(&user)
+	rsp := newUserResponse(&user)
 
-	response.HandleSuccess(ctx, rsp)
+	handleSuccess(ctx, rsp)
 }
 
 // deleteUserRequest represents the request body for deleting a user
@@ -155,15 +154,15 @@ type deleteUserRequest struct {
 func (uh *UserHandler) DeleteUser(ctx *gin.Context) {
 	var req deleteUserRequest
 	if err := ctx.ShouldBindUri(&req); err != nil {
-		response.ValidationError(ctx, err)
+		validationError(ctx, err)
 		return
 	}
 
 	err := uh.svc.DeleteUser(ctx, req.ID)
 	if err != nil {
-		response.HandleError(ctx, err)
+		handleError(ctx, err)
 		return
 	}
 
-	response.HandleSuccess(ctx, nil)
+	handleSuccess(ctx, nil)
 }

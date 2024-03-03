@@ -1,8 +1,9 @@
-package response
+package http
 
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -10,35 +11,35 @@ import (
 )
 
 // response represents a response body format
-type Response struct {
+type response struct {
 	Success bool   `json:"success" example:"true"`
 	Message string `json:"message" example:"Success"`
 	Data    any    `json:"data,omitempty"`
 }
 
 // ErrorResponse represents an error response body format
-type ErrorResponse struct {
+type errorResponse struct {
 	Success  bool     `json:"success" example:"false"`
 	Messages []string `json:"messages" example:"Error message 1, Error message 2"`
 }
 
 // meta represents metadata for a paginated response
-type Meta struct {
+type meta struct {
 	Total uint64 `json:"total" example:"100"`
 	Limit uint64 `json:"limit" example:"10"`
 	Skip  uint64 `json:"skip" example:"0"`
 }
 
 // NewErrorResponse is a helper function to create an error response body
-func NewErrorResponse(errMsgs []string) ErrorResponse {
-	return ErrorResponse{
+func newErrorResponse(errMsgs []string) errorResponse {
+	return errorResponse{
 		Success:  false,
 		Messages: errMsgs,
 	}
 }
 
 // ErrorStatusMap is a map of defined error messages and their corresponding http status codes
-var ErrorStatusMap = map[error]int{
+var errorStatusMap = map[error]int{
 	domain.ErrInternal:                   http.StatusInternalServerError,
 	domain.ErrDataNotFound:               http.StatusNotFound,
 	domain.ErrConflictingData:            http.StatusConflict,
@@ -54,8 +55,8 @@ var ErrorStatusMap = map[error]int{
 }
 
 // newResponse is a helper function to create a response body
-func NewResponse(success bool, message string, data any) Response {
-	return Response{
+func newResponse(success bool, message string, data any) response {
+	return response{
 		Success: success,
 		Message: message,
 		Data:    data,
@@ -63,8 +64,8 @@ func NewResponse(success bool, message string, data any) Response {
 }
 
 // newMeta is a helper function to create metadata for a paginated response
-func NewMeta(total, limit, skip uint64) Meta {
-	return Meta{
+func newMeta(total, limit, skip uint64) meta {
+	return meta{
 		Total: total,
 		Limit: limit,
 		Skip:  skip,
@@ -72,38 +73,38 @@ func NewMeta(total, limit, skip uint64) Meta {
 }
 
 // validationError sends an error response for some specific request validation error
-func ValidationError(ctx *gin.Context, err error) {
-	errMsgs := ParseError(err)
-	errRsp := NewErrorResponse(errMsgs)
+func validationError(ctx *gin.Context, err error) {
+	errMsgs := parseError(err)
+	errRsp := newErrorResponse(errMsgs)
 	ctx.JSON(http.StatusBadRequest, errRsp)
 }
 
 // handleError determines the status code of an error and returns a JSON response with the error message and status code
-func HandleError(ctx *gin.Context, err error) {
-	statusCode, ok := ErrorStatusMap[err]
+func handleError(ctx *gin.Context, err error) {
+	statusCode, ok := errorStatusMap[err]
 	if !ok {
 		statusCode = http.StatusInternalServerError
 	}
 
-	errMsg := ParseError(err)
-	errRsp := NewErrorResponse(errMsg)
+	errMsg := parseError(err)
+	errRsp := newErrorResponse(errMsg)
 	ctx.JSON(statusCode, errRsp)
 }
 
 // handleAbort sends an error response and aborts the request with the specified status code and error message
-func HandleAbort(ctx *gin.Context, err error) {
-	statusCode, ok := ErrorStatusMap[err]
+func handleAbort(ctx *gin.Context, err error) {
+	statusCode, ok := errorStatusMap[err]
 	if !ok {
 		statusCode = http.StatusInternalServerError
 	}
 
-	errMsg := ParseError(err)
-	errRsp := NewErrorResponse(errMsg)
+	errMsg := parseError(err)
+	errRsp := newErrorResponse(errMsg)
 	ctx.AbortWithStatusJSON(statusCode, errRsp)
 }
 
 // ParseError parses error messages from the error object and returns a slice of error messages
-func ParseError(err error) []string {
+func parseError(err error) []string {
 	var errMsgs []string
 
 	if errors.As(err, &validator.ValidationErrors{}) {
@@ -118,7 +119,39 @@ func ParseError(err error) []string {
 }
 
 // handleSuccess sends a success response with the specified status code and optional data
-func HandleSuccess(ctx *gin.Context, data any) {
-	rsp := NewResponse(true, "Success", data)
+func handleSuccess(ctx *gin.Context, data any) {
+	rsp := newResponse(true, "Success", data)
 	ctx.JSON(http.StatusOK, rsp)
+}
+
+// authResponse represents an authentication response body
+type authResponse struct {
+	AccessToken string `json:"token" example:"v2.local.Gdh5kiOTyyaQ3_bNykYDeYHO21Jg2..."`
+}
+
+// newAuthResponse is a helper function to create a response body for handling authentication data
+func newAuthResponse(token string) authResponse {
+	return authResponse{
+		AccessToken: token,
+	}
+}
+
+// userResponse represents a user response body
+type userResponse struct {
+	ID        uint64    `json:"id" example:"1"`
+	Name      string    `json:"name" example:"John Doe"`
+	Email     string    `json:"email" example:"test@example.com"`
+	CreatedAt time.Time `json:"created_at" example:"1970-01-01T00:00:00Z"`
+	UpdatedAt time.Time `json:"updated_at" example:"1970-01-01T00:00:00Z"`
+}
+
+// newuserResponse is a helper function to create a response body for handling user data
+func newUserResponse(user *domain.User) userResponse {
+	return userResponse{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+	}
 }
